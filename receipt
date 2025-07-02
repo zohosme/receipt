@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Salary Receipt Generator</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics and print media */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+        }
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background-color: #ffffff;
+            border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #374151; /* Darker gray for labels */
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            border: 1px solid #d1d5db; /* Light gray border */
+            border-radius: 0.5rem; /* Slightly rounded input fields */
+            padding: 0.625rem 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease-in-out;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6; /* Blue border on focus */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-primary {
+            background-color: #3b82f6; /* Blue */
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* Gray */
+            color: #ffffff;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* Darker gray on hover */
+            transform: translateY(-1px);
+        }
+        .receipt-preview {
+            border: 1px dashed #9ca3af; /* Dashed border for preview */
+            padding: 2rem;
+            background-color: #f9fafb; /* Lighter background for preview */
+            border-radius: 0.75rem;
+            min-height: 300px; /* Ensure some height for preview */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .receipt-content {
+            white-space: pre-wrap; /* Preserves whitespace and line breaks */
+            line-height: 1.8;
+            font-size: 1rem;
+        }
+        .receipt-footer-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .signature-section {
+            text-align: center;
+            margin-top: 2rem;
+            position: relative; /* Container for absolute positioning */
+            height: 150px; /* Give it enough height for content */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end; /* Align content to bottom */
+        }
+        .signature-text {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin-bottom: 5px; /* Space between text and visual area */
+            z-index: 3; /* Ensure text is on top */
+            position: relative; /* To ensure it's above other elements if they overlap slightly */
+        }
+        .signature-visuals {
+            position: relative;
+            width: 150px; /* Match stamp width */
+            height: 80px; /* Match stamp height */
+            margin: 0 auto; /* Center the visual area */
+            margin-bottom: 5px; /* Space between visual area and line */
+        }
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 70%; /* Line width */
+            margin: 0 auto; /* Center the line */
+            padding-top: 5px; /* Padding for text below line */
+            font-size: 0.875rem;
+            color: #4b5563;
+        }
+        .revenue-stamp-container {
+            width: 100%; /* Take full width of signature-visuals */
+            height: 100%; /* Take full height of signature-visuals */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 1px dashed #000; /* Optional: keep the dashed border around the image */
+            z-index: 1; /* Stamp below signature image */
+        }
+        .revenue-stamp-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* Ensure the image fits within the container */
+        }
+        .revenue-stamp-container.hidden-stamp {
+            display: none !important; /* Hide the stamp when toggled off */
+        }
+
+        /* Toggle switch styling */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 24px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+        input:checked + .slider:before {
+            -webkit-transform: translateX(16px);
+            -ms-transform: translateX(16px);
+            transform: translateX(16px);
+        }
+
+        /* Signature image styling */
+        .signature-image {
+            max-width: 100%; /* Take full width of signature-visuals */
+            max-height: 100%; /* Take full height of signature-visuals */
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2; /* Signature on top of stamp */
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                background-color: #ffffff;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .container {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+            .receipt-preview {
+                border: none;
+                padding: 0;
+                min-height: auto;
+            }
+            .receipt-footer-layout {
+                grid-template-columns: 1fr 1fr; /* Maintain two columns for print */
+            }
+            /* Ensure hidden stamp remains hidden during print */
+            .revenue-stamp-container.hidden-stamp {
+                display: none !important;
+            }
+            .signature-line {
+                border-top: none; /* Remove line under signature for print if image is present */
+            }
+        }
+        /* New style to center the header text */
+        .receipt-header {
+            text-align: center;
+        }
+        /* Underline for DRIVER RECEIPT */
+        .receipt-header h3 {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="container">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Driver Salary Receipt Generator</h1>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Input Form Section -->
+            <div class="no-print">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Receipt Details</h2>
+                <form id="receiptForm" class="space-y-4">
+                    <div class="form-group">
+                        <label for="driverName" class="block text-sm mb-1">Driver Name:</label>
+                        <input type="text" id="driverName" placeholder="e.g., John Doe" class="w-full" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fareAmount" class="block text-sm mb-1">Amount (Rs.):</label>
+                        <input type="number" id="fareAmount" step="0.01" placeholder="e.g., 5000.00" class="w-full" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="receivedFrom" class="block text-sm mb-1">Received From:</label>
+                        <input type="text" id="receivedFrom" placeholder="e.g., ABC Company" class="w-full" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="monthOfService" class="block text-sm mb-1">For the month of:</label>
+                        <input type="text" id="monthOfService" placeholder="e.g., June 2025" class="w-full" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="place" class="block text-sm mb-1">Place:</label>
+                        <input type="text" id="place" placeholder="e.g., New Delhi" class="w-full" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="receiptDate" class="block text-sm mb-1">Date:</label>
+                        <input type="date" id="receiptDate" class="w-full" required>
+                    </div>
+
+                    <div class="form-group flex items-center justify-between mt-4">
+                        <label for="toggleRevenueStamp" class="block text-sm">Show Revenue Stamp:</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleRevenueStamp" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <label for="signatureUpload" class="block text-sm mb-1">Upload Driver Signature (Image):</label>
+                        <input type="file" id="signatureUpload" accept="image/*" class="w-full p-2 border border-gray-300 rounded-md">
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-4 mt-6">
+                        <button type="button" id="generateReceiptBtn" class="btn btn-primary flex-grow">Generate Receipt</button>
+                        <button type="button" id="clearFormBtn" class="btn btn-secondary flex-grow">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Receipt Preview Section -->
+            <div>
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">Receipt Preview</h2>
+                <div id="receiptPreview" class="receipt-preview text-gray-800">
+                    <div>
+                        <div class="receipt-header">
+                            <h3 class="text-2xl font-bold mb-4">DRIVER RECEIPT</h3>
+                        </div>
+                        <div class="receipt-content">
+                            <p>I, <span id="previewDriverName">________________________________________</span> received sum of <span id="previewFareAmount">____________</span>(<span id="previewAmountInWords">__________________________________________________________________</span>) from<span id="previewReceivedFrom">__________________________________</span> as driver for the month of <span id="previewMonthOfService">_________________________</span>.</p>
+                        </div>
+                    </div>
+                    <div class="receipt-footer-layout">
+                        <div>
+                            <p>Place: <span id="previewPlace">_________________________</span></p>
+                            <p>Date: <span id="previewReceiptDate">_________________________</span></p>
+                        </div>
+                        <!-- Empty div for spacing, revenue stamp will be in signature-section -->
+                        <div></div>
+                    </div>
+                    <div class="signature-section">
+                        <div class="signature-text">SIGNATURE OF DRIVER</div>
+                        <div class="signature-visuals">
+                            <img id="signatureImagePreview" class="signature-image hidden" src="" alt="Driver Signature">
+                            <div class="revenue-stamp-container" id="revenueStampContainer">
+                                <img src="https://freeforonline.com/assets/images/driver-salary/revenu.webp" alt="Revenue Stamp" onerror="this.onerror=null;this.src='https://placehold.co/150x80/cccccc/333333?text=Revenue+Stamp+Image+Not+Found';">
+                            </div>
+                        </div>
+                        <div class="signature-line" id="signatureLine"></div>
+                    </div>
+                </div>
+                <div class="no-print flex flex-col sm:flex-row gap-4 mt-6">
+                    <button type="button" id="printReceiptBtn" class="btn btn-primary flex-grow">Print Receipt</button>
+                    <button type="button" id="downloadPdfBtn" class="btn btn-secondary flex-grow">Download PDF</button>
+                    <button type="button" id="downloadDocBtn" class="btn btn-secondary flex-grow">Download as DOC</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- html2pdf.js for PDF generation (includes html2canvas) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        // Function to convert number to words (for Indian Rupees)
+        function convertNumberToWords(amount) {
+            const units = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+            const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+            const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            const scales = ['', 'Thousand', 'Lakh', 'Crore']; // Indian numbering system
+
+            if (amount === 0) return 'Zero';
+
+            let num = amount.toString();
+            let [integerPart, decimalPart] = num.split('.');
+            let words = [];
+
+            // Function to convert a number less than 1000 to words
+            function convertLessThanOneThousand(n) {
+                let s = [];
+                if (n >= 100) {
+                    s.push(units[Math.floor(n / 100)], 'Hundred');
+                    n %= 100;
+                }
+                if (n >= 20) {
+                    s.push(tens[Math.floor(n / 10)]);
+                    n %= 10;
+                }
+                if (n >= 10) {
+                    s.push(teens[n - 10]);
+                    n = 0;
+                }
+                if (n > 0) {
+                    s.push(units[n]);
+                }
+                return s.join(' ');
+            }
+
+            // Process integer part
+            let i = 0;
+            while (integerPart.length > 0) {
+                let chunk;
+                if (i === 0) { // First chunk (hundreds, tens, units)
+                    chunk = parseInt(integerPart.slice(-3));
+                    integerPart = integerPart.slice(0, -3);
+                } else if (i === 1 || i === 2) { // Thousands, Lakhs, Crores (two digits each)
+                    chunk = parseInt(integerPart.slice(-2));
+                    integerPart = integerPart.slice(0, -2);
+                } else { // For larger numbers, revert to three-digit chunks for simplicity or extend scales
+                    chunk = parseInt(integerPart.slice(-3));
+                    integerPart = integerPart.slice(0, -3);
+                }
+
+                if (chunk > 0) {
+                    let chunkWords = convertLessThanOneThousand(chunk);
+                    if (scales[i]) {
+                        words.unshift(chunkWords, scales[i]);
+                    } else {
+                        words.unshift(chunkWords);
+                    }
+                }
+                i++;
+            }
+
+            let finalWords = 'Rupees ' + words.join(' ') + (words.length > 0 ? ' ' : '');
+
+            // Process decimal part (Paise)
+            if (decimalPart && parseInt(decimalPart) > 0) {
+                decimalPart = parseInt(decimalPart).toString().padStart(2, '0'); // Ensure two digits
+                const paise = parseInt(decimalPart);
+                if (paise > 0) {
+                    finalWords += 'and ' + convertLessThanOneThousand(paise) + ' Paise';
+                }
+            }
+            finalWords += ' Only';
+            return finalWords.trim();
+        }
+
+        // Set current date and handle initial stamp visibility on page load
+        window.onload = function() {
+            const today = new Date();
+            const yyyy = today.getFullYear(); // Corrected variable name
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('receiptDate').value = `${yyyy}-${mm}-${dd}`;
+
+            // Set initial state of the toggle and stamp visibility
+            const toggleRevenueStamp = document.getElementById('toggleRevenueStamp');
+            const revenueStampContainer = document.getElementById('revenueStampContainer');
+            if (toggleRevenueStamp.checked) {
+                revenueStampContainer.classList.remove('hidden-stamp');
+            } else {
+                revenueStampContainer.classList.add('hidden-stamp');
+            }
+            updateReceiptPreview(); // Initial update to show default values
+        };
+
+        // Get elements
+        const receiptForm = document.getElementById('receiptForm');
+        const generateReceiptBtn = document.getElementById('generateReceiptBtn');
+        const clearFormBtn = document.getElementById('clearFormBtn');
+        const printReceiptBtn = document.getElementById('printReceiptBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const downloadDocBtn = document.getElementById('downloadDocBtn');
+        // Removed downloadImageBtn as per request
+        const receiptPreview = document.getElementById('receiptPreview');
+        const toggleRevenueStamp = document.getElementById('toggleRevenueStamp');
+        const revenueStampContainer = document.getElementById('revenueStampContainer');
+        const signatureUpload = document.getElementById('signatureUpload');
+        const signatureImagePreview = document.getElementById('signatureImagePreview');
+        const signatureLine = document.getElementById('signatureLine');
+
+        // Function to update the receipt preview with form data
+        function updateReceiptPreview() {
+            // Get values from form inputs
+            const driverName = document.getElementById('driverName').value || '________________________________________';
+            const fareAmount = parseFloat(document.getElementById('fareAmount').value) || 0;
+            const receivedFrom = document.getElementById('receivedFrom').value || '__________________________________';
+            const monthOfService = document.getElementById('monthOfService').value || '_________________________';
+            const place = document.getElementById('place').value || '_________________________';
+            const receiptDate = document.getElementById('receiptDate').value || '_________________________';
+
+            // Convert fare amount to words
+            const amountInWords = convertNumberToWords(fareAmount);
+
+            // Update preview elements
+            document.getElementById('previewDriverName').textContent = driverName;
+            document.getElementById('previewFareAmount').textContent = `Rs ${fareAmount.toFixed(2)}`;
+            document.getElementById('previewAmountInWords').textContent = amountInWords;
+            document.getElementById('previewReceivedFrom').textContent = receivedFrom;
+            document.getElementById('previewMonthOfService').textContent = monthOfService;
+            document.getElementById('previewPlace').textContent = place;
+            document.getElementById('previewReceiptDate').textContent = receiptDate !== '_________________________' ? new Date(receiptDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '_________________________';
+        }
+
+        // Event listener for generating receipt
+        generateReceiptBtn.addEventListener('click', function() {
+            // Basic form validation
+            if (!receiptForm.checkValidity()) {
+                receiptForm.reportValidity(); // Show browser's validation messages
+                return;
+            }
+            updateReceiptPreview();
+        });
+
+        // Event listener for clearing the form
+        clearFormBtn.addEventListener('click', function() {
+            receiptForm.reset();
+            const today = new Date(); // Reset date to today
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            document.getElementById('receiptDate').value = `${yyyy}-${mm}-${dd}`;
+            
+            // Reset toggle and stamp visibility
+            toggleRevenueStamp.checked = true; // Default to checked
+            revenueStampContainer.classList.remove('hidden-stamp');
+
+            // Clear signature image
+            signatureUpload.value = ''; // Clear file input
+            signatureImagePreview.src = '';
+            signatureImagePreview.classList.add('hidden');
+            signatureLine.classList.remove('hidden'); // Show the line again
+            
+            updateReceiptPreview(); // Update preview with cleared/default values
+        });
+
+        // Event listener for printing the receipt
+        printReceiptBtn.addEventListener('click', function() {
+            window.print();
+        });
+
+        // Event listener for downloading PDF
+        downloadPdfBtn.addEventListener('click', function() {
+            const element = document.getElementById('receiptPreview');
+            const opt = {
+                margin:       1,
+                filename:     `driver_salary_receipt.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, logging: true, dpi: 192, letterRendering: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            // Add a small delay before saving the PDF
+            setTimeout(() => {
+                html2pdf().set(opt).from(element).save();
+            }, 100); // 100ms delay
+        });
+
+        // Event listener for downloading as DOC (basic HTML to DOC conversion)
+        downloadDocBtn.addEventListener('click', function() {
+            const content = receiptPreview.innerHTML; // Get the inner HTML of the preview
+            const filename = 'driver_salary_receipt.doc';
+
+            // Create a Blob with the HTML content and application/msword MIME type
+            const blob = new Blob(['<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Document</title></head><body>' + content + '</body></html>'], {
+                type: 'application/msword'
+            });
+
+            // Create a link element and trigger the download
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href); // Clean up the URL object
+        });
+
+        // Removed downloadImageBtn event listener as per request
+
+        // Event listener for the toggle switch
+        toggleRevenueStamp.addEventListener('change', function() {
+            if (this.checked) {
+                revenueStampContainer.classList.remove('hidden-stamp');
+            } else {
+                revenueStampContainer.classList.add('hidden-stamp');
+            }
+        });
+
+        // Event listener for signature image upload
+        signatureUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    signatureImagePreview.src = e.target.result;
+                    signatureImagePreview.classList.remove('hidden'); // Show the image
+                    signatureLine.classList.add('hidden'); // Hide the line
+                };
+                reader.readAsDataURL(file); // Read the file as a data URL
+            } else {
+                signatureImagePreview.src = '';
+                signatureImagePreview.classList.add('hidden'); // Hide the image
+                signatureLine.classList.remove('hidden'); // Show the line
+            }
+        });
+
+        // Add input listeners to update preview dynamically (optional, but good for user experience)
+        const formInputs = receiptForm.querySelectorAll('input:not([type="file"]), textarea, select'); // Exclude file input from general input listener
+        formInputs.forEach(input => {
+            input.addEventListener('input', updateReceiptPreview);
+        });
+    </script>
+</body>
+</html>
